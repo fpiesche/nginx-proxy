@@ -1,25 +1,36 @@
-FROM nginx:1.19.3-alpine
-LABEL maintainer="Jason Wilder mail@jasonwilder.com"
+FROM nginx:alpine
+LABEL maintainer="Florian Piesche florian@yellowkeycard.net"
 
 # Install wget and install/updates certificates
 RUN apk add --no-cache --virtual .run-deps \
-    ca-certificates bash wget openssl \
+    ca-certificates bash wget openssl python3 py3-pip \
     && update-ca-certificates
-
 
 # Configure Nginx and apply fix for very long server names
 RUN echo "daemon off;" >> /etc/nginx/nginx.conf \
  && sed -i 's/worker_processes  1/worker_processes  auto/' /etc/nginx/nginx.conf
 
-# Install Forego
-ADD https://github.com/jwilder/forego/releases/download/v0.16.1/forego /usr/local/bin/forego
-RUN chmod u+x /usr/local/bin/forego
+# Install honcho (rather than Foreman which is complex to build and has wide ranging dependencies)
+RUN pip install honcho
 
+# Install docker-gen
 ENV DOCKER_GEN_VERSION 0.7.4
-
-RUN wget --quiet https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VERSION/docker-gen-alpine-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
- && tar -C /usr/local/bin -xvzf docker-gen-alpine-linux-amd64-$DOCKER_GEN_VERSION.tar.gz \
- && rm /docker-gen-alpine-linux-amd64-$DOCKER_GEN_VERSION.tar.gz
+RUN /bin/ash -c 'set -ex && \
+    ARCH=`uname -m` && \
+    case $ARCH in \
+    "x86_84") \
+        DGARCH="amd64" \
+        ;; \
+    "armv6"|"armv7"|"aarch64") \
+        DGARCH="armhf" \
+        ;; \
+    *) \
+        echo "Unsupported architecture: $ARCH" \
+        ;; \
+    esac \
+    && wget --quiet https://github.com/jwilder/docker-gen/releases/download/$DOCKER_GEN_VERSION/docker-gen-alpine-linux-$DGARCH-$DOCKER_GEN_VERSION.tar.gz \
+    && tar -C /usr/local/bin -xvzf docker-gen-alpine-linux-$DGARCH-$DOCKER_GEN_VERSION.tar.gz \
+    && rm /docker-gen-alpine-linux-$DGARCH-$DOCKER_GEN_VERSION.tar.gz'
 
 COPY network_internal.conf /etc/nginx/
 
@@ -31,4 +42,4 @@ ENV DOCKER_HOST unix:///tmp/docker.sock
 VOLUME ["/etc/nginx/certs", "/etc/nginx/dhparam"]
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
-CMD ["forego", "start", "-r"]
+CMD ["honcho", "start"]
