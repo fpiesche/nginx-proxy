@@ -9,7 +9,7 @@ on:
       - 'master'
      
 jobs:
-  cups:
+  docker-build:
     runs-on: ubuntu-latest
 
     steps:
