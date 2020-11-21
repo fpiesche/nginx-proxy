@@ -21,7 +21,7 @@ RUN /bin/ash -c 'set -ex && \
     "x86_84") \
         DGARCH="amd64" \
         ;; \
-    "armv6"|"armv7"|"aarch64") \
+    "armv6"|"armv7"|"armel"|"armv7l"|"aarch64") \
         DGARCH="armhf" \
         ;; \
     *) \
