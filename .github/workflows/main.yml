@@ -1,8 +1,13 @@
 name: Build Docker images
 
 on:
-  push: [ 'master' ]
-  
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'
+     
 jobs:
   cups:
     runs-on: ubuntu-latest
